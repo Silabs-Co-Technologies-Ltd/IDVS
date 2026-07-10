@@ -1,8 +1,5 @@
-bcrypt>=4.1
-numpy>=1.26
-pillow>=10.0
-rapidfuzz>=3.6
-opencv-python>=4.9
-easyocr>=1.7
-pyttsx3>=2.90
-pytest>=8.0
+# Vercel installs this file for the optional serverless upload form.
+# Keep it intentionally empty: api/index.py and idvs.wsgi use only the Python
+# standard library so the deployed function stays below Vercel's bundle limit.
+#
+# Install the offline kiosk dependencies from requirements-offline.txt instead.

@@ -26,6 +26,7 @@ Change it before real deployment.
 ## Run
 
 ```bash
+python -m pip install -r requirements-offline.txt
 python main.py
 ```
 
@@ -33,6 +34,8 @@ python main.py
 ## Optional Online Testing on Vercel
 
 The offline kiosk remains the production entrypoint. For quick browser-based testing on Vercel, this repository also includes a lightweight WSGI upload app exposed from `api/index.py`. Vercel detects the Python runtime and serves the form at `/`; uploads post to `/upload`.
+
+The Vercel app is intentionally standard-library only. Keep `requirements.txt` empty or limited to tiny serverless-only dependencies so Vercel does not bundle the offline OCR stack. Install the full kiosk dependencies from `requirements-offline.txt` for local/offline operation instead.
 
 Serverless filesystems are ephemeral, so uploaded images are stored in `/tmp/idvs-upload` on Vercel unless `IDVS_UPLOAD_DIR` is set. Use this only for test submissions, not durable production storage.
 
