@@ -1,50 +1,40 @@
-# IDVS
+# Automated Student ID Card Verification System for NAUB
 
-A minimal ID card verification upload system.
+A production-oriented, offline Python desktop kiosk for verifying Nigerian Army University Biu student ID cards. The system combines local image processing, EasyOCR field extraction, SQLite database checks, fuzzy matching, and Knowledge-Based Identification (KBI) so that possession of a stolen card is not sufficient for access.
 
-## Where to upload ID card images
+## Architecture
 
-Start the server and open the upload page:
+- `main.py` starts the offline Tkinter kiosk.
+- `src/config` loads configurable thresholds, camera index, fullscreen mode, backup location, and ID-card ROI templates.
+- `src/database` owns SQLite schema creation, parameterized repositories, CSV import, backups, verification logs, admin users, settings, and audit tables.
+- `src/models` contains dataclasses used across the application.
+- `src/ocr` performs card detection, perspective correction, preprocessing, ROI extraction, and EasyOCR per field.
+- `src/verification` contains business-only verification and KBI workflow logic.
+- `src/security` hashes administrator passwords and KBI answers using bcrypt.
+- `src/admin` exposes administrator use cases independently from the GUI.
+- `src/app` contains the kiosk Tkinter interface.
 
-```bash
-python -m idvs.server
-```
+## Default Administrator
 
-Then go to:
+The first database initialization creates a local administrator account for demonstration:
 
-```text
-http://127.0.0.1:8000/
-```
+- Username: `admin`
+- Password: `admin123`
 
-Use the **Front of ID card** field for the front image and the **Back of ID card** field for the back image. The system accepts JPEG, PNG, and WebP files.
+Change it before real deployment.
 
-## Where uploaded files are stored
-
-By default, uploads are saved in:
-
-```text
-data/id-cards/<submission-id>/
-```
-
-Each submission directory contains the front image, the back image, and `metadata.json`.
-
-To store uploads somewhere else, set `IDVS_UPLOAD_DIR` before starting the server:
+## Run
 
 ```bash
-IDVS_UPLOAD_DIR=/secure/id-card-uploads python -m idvs.server
+python main.py
 ```
 
-## Configuration
-
-| Environment variable | Default | Purpose |
-| --- | --- | --- |
-| `IDVS_HOST` | `127.0.0.1` | Bind address for the upload server. |
-| `IDVS_PORT` | `8000` | Port for the upload server. |
-| `IDVS_UPLOAD_DIR` | `data/id-cards` | Directory where uploaded ID card images are saved. |
-| `IDVS_MAX_UPLOAD_BYTES` | `12582912` | Maximum total multipart request size. |
-
-## Run tests
+## Test
 
 ```bash
 python -m pytest
 ```
+
+## Offline Dependencies
+
+Install dependencies from local wheels or a prepared offline package directory in deployment environments. No cloud OCR or internet service is used by the application.

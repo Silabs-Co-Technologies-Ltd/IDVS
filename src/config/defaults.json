@@ -1,0 +1,18 @@
+{
+  "database_path": "data/naub_idvs.sqlite3",
+  "ocr_confidence_threshold": 0.55,
+  "matching_threshold": 80,
+  "camera_index": 0,
+  "voice_enabled": false,
+  "fullscreen_enabled": true,
+  "theme": "dark",
+  "backup_location": "data/backups",
+  "log_retention_days": 90,
+  "session_timeout_minutes": 10,
+  "roi_template": {
+    "matric_number": [0.35, 0.28, 0.55, 0.10],
+    "name": [0.30, 0.38, 0.62, 0.12],
+    "department": [0.30, 0.52, 0.62, 0.10],
+    "faculty": [0.30, 0.64, 0.62, 0.10]
+  }
+}
