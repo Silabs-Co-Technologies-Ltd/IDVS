@@ -1,5 +1,7 @@
 from pathlib import Path
 
+import pytest
+
 from src.config.settings import AppSettings
 from src.database.repository import Database
 from src.models.entities import OCRField, OCRResult, Student, VerificationResult
@@ -69,3 +71,16 @@ def test_admin_authentication(tmp_path):
     auth = AuthService(db)
     assert auth.login("admin", "admin123")
     assert not auth.login("admin", "wrong")
+
+
+def test_ocr_preprocess_accepts_grayscale_images(tmp_path):
+    from src.ocr.pipeline import cv2, np
+
+    if cv2 is None or np is None:
+        pytest.skip("OpenCV and NumPy are not installed")
+    app_settings = settings(tmp_path)
+    image = np.full((64, 64), 127, dtype=np.uint8)
+
+    processed = OCRService(app_settings).preprocess(image)
+
+    assert processed.shape == image.shape

@@ -57,8 +57,15 @@ def parse_multipart(content_type: str, body: bytes) -> list[UploadedPart]:
     for raw_part in body.split(delimiter):
         if raw_part in {b"", b"--", b"--\r\n"}:
             continue
-        raw_part = raw_part.strip(b"\r\n")
-        if raw_part == b"--":
+        if raw_part.startswith(b"\r\n"):
+            raw_part = raw_part[2:]
+        if raw_part.endswith(b"\r\n"):
+            raw_part = raw_part[:-2]
+        if raw_part.endswith(b"--"):
+            raw_part = raw_part[:-2]
+            if raw_part.endswith(b"\r\n"):
+                raw_part = raw_part[:-2]
+        if raw_part == b"":
             continue
         headers_blob, sep, payload = raw_part.partition(b"\r\n\r\n")
         if not sep:
@@ -73,7 +80,7 @@ def parse_multipart(content_type: str, body: bytes) -> list[UploadedPart]:
         filename = re.search(r'filename="([^"]*)"', disposition)
         if not field or not filename or not filename.group(1):
             continue
-        content_type_header = headers.get("content-type", "application/octet-stream").lower()
+        content_type_header = headers.get("content-type", "application/octet-stream").split(";", 1)[0].strip().lower()
         parts.append(
             UploadedPart(
                 field_name=field.group(1),
@@ -100,11 +107,12 @@ def save_submission(parts: Iterable[UploadedPart], upload_root: Path = UPLOAD_RO
     try:
         for field_name, label in (("front_image", "front"), ("back_image", "back")):
             part = selected[field_name]
-            if part.content_type not in ALLOWED_CONTENT_TYPES:
+            content_type = part.content_type.split(";", 1)[0].strip().lower()
+            if content_type not in ALLOWED_CONTENT_TYPES:
                 raise UploadError("Only JPEG, PNG, and WebP images are accepted.")
             if not part.body:
                 raise UploadError("Uploaded image files must not be empty.")
-            suffix = ALLOWED_CONTENT_TYPES[part.content_type]
+            suffix = ALLOWED_CONTENT_TYPES[content_type]
             original = _safe_filename(part.filename, f"{label}{suffix}")
             destination = submission_dir / f"{label}-{original}"
             if destination.suffix.lower() not in ALLOWED_CONTENT_TYPES.values():

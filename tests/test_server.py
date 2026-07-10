@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from idvs.server import UploadError, parse_multipart, save_submission
+from idvs.server import UploadedPart, UploadError, parse_multipart, save_submission
 
 
 def multipart_body(boundary: str) -> bytes:
@@ -52,3 +52,28 @@ def test_save_submission_requires_both_sides(tmp_path: Path):
 
     with pytest.raises(UploadError, match="front and back"):
         save_submission(parts, tmp_path)
+
+
+def test_parse_multipart_preserves_binary_payload_edges():
+    boundary = "binary-boundary"
+    payload = b"\r\nPNG-bytes-that-end-with-crlf\r\n"
+    body = (
+        f"--{boundary}\r\n"
+        'Content-Disposition: form-data; name="front_image"; filename="front.png"\r\n'
+        "Content-Type: image/png\r\n\r\n"
+    ).encode() + payload + f"\r\n--{boundary}--\r\n".encode()
+
+    parts = parse_multipart(f"multipart/form-data; boundary={boundary}", body)
+
+    assert parts[0].body == payload
+
+
+def test_save_submission_accepts_content_type_parameters(tmp_path: Path):
+    parts = [
+        UploadedPart("front_image", "front.png", "image/png; charset=binary", b"front"),
+        UploadedPart("back_image", "back.jpeg", "image/jpeg", b"back"),
+    ]
+
+    _submission_id, saved = save_submission(parts, tmp_path)
+
+    assert sorted(path.name for path in saved) == ["back-back.jpg", "front-front.png"]

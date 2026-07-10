@@ -75,7 +75,12 @@ class OCRService:
     def preprocess(self, image):
         if cv2 is None:
             return image
-        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY if image.ndim == 3 else cv2.COLOR_GRAY2BGR)
+        if image.ndim == 2:
+            gray = image
+        elif image.ndim == 3:
+            gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+        else:
+            raise ValueError("Expected a 2-D grayscale or 3-D RGB image")
         clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8)).apply(gray)
         denoised = cv2.fastNlMeansDenoising(clahe, h=10)
         sharp = cv2.addWeighted(denoised, 1.5, cv2.GaussianBlur(denoised, (0, 0), 3), -0.5, 0)
