@@ -2,12 +2,13 @@
 from __future__ import annotations
 
 import html
+import json
 import os
 from http import HTTPStatus
 from pathlib import Path
 from typing import Callable, Iterable
 
-from idvs.server import INDEX_HTML, MAX_UPLOAD_BYTES, UploadError, parse_multipart, save_submission
+from idvs.server import INDEX_HTML, MAX_UPLOAD_BYTES, UploadError, decode_data_url, parse_multipart, save_submission, verify_image_bytes
 
 StartResponse = Callable[[str, list[tuple[str, str]]], None]
 
@@ -47,6 +48,20 @@ def app(environ: dict[str, object], start_response: StartResponse) -> Iterable[b
 
     if method == "GET" and path == "/":
         return _html_response(start_response, INDEX_HTML)
+
+    if method == "POST" and path == "/verify":
+        try:
+            length = int(str(environ.get("CONTENT_LENGTH") or "0"))
+            if length <= 0 or length > MAX_UPLOAD_BYTES:
+                raise UploadError(f"Verification payload must be between 1 byte and {MAX_UPLOAD_BYTES} bytes.")
+            body_stream = environ["wsgi.input"]
+            payload = json.loads(body_stream.read(length).decode("utf-8"))  # type: ignore[attr-defined]
+            result = verify_image_bytes(decode_data_url(str(payload.get("image", ""))))
+        except (UploadError, json.JSONDecodeError) as exc:
+            result = {"success": False, "reason": str(exc)}
+        body = json.dumps(result).encode("utf-8")
+        start_response("200 OK", [("Content-Type", "application/json; charset=utf-8"), ("Content-Length", str(len(body)))])
+        return [body]
 
     if method == "POST" and path == "/upload":
         try:

@@ -123,3 +123,39 @@ def test_wsgi_app_accepts_uploads_with_configured_directory(tmp_path: Path, monk
     assert status.startswith("200")
     assert b"Upload complete" in body
     assert len(list(tmp_path.iterdir())) == 1
+
+
+def test_kiosk_page_uses_camera_and_verify_endpoint():
+    status, _headers, body = call_wsgi_app()
+
+    assert status.startswith("200")
+    assert b"IDVS Kiosk" in body
+    assert b"navigator.mediaDevices.getUserMedia" in body
+    assert b"/verify" in body
+
+
+def test_decode_data_url_accepts_browser_canvas_image():
+    from idvs.server import decode_data_url
+
+    assert decode_data_url("data:image/jpeg;base64,aWQtY2FyZA==") == b"id-card"
+
+
+def test_wsgi_verify_endpoint_returns_json(monkeypatch):
+    import idvs.wsgi as wsgi
+
+    def fake_verify(image_bytes):
+        assert image_bytes == b"id-card"
+        return {"success": True, "reason": "matched", "matric_number": "NAUB/CSC/001"}
+
+    monkeypatch.setattr(wsgi, "verify_image_bytes", fake_verify)
+
+    status, headers, body = call_wsgi_app(
+        "/verify",
+        "POST",
+        b'{"image":"data:image/jpeg;base64,aWQtY2FyZA=="}',
+        "application/json",
+    )
+
+    assert status.startswith("200")
+    assert headers["Content-Type"] == "application/json; charset=utf-8"
+    assert b'"success": true' in body
