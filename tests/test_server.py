@@ -77,3 +77,49 @@ def test_save_submission_accepts_content_type_parameters(tmp_path: Path):
     _submission_id, saved = save_submission(parts, tmp_path)
 
     assert sorted(path.name for path in saved) == ["back-back.jpg", "front-front.png"]
+
+
+def call_wsgi_app(path: str = "/", method: str = "GET", body: bytes = b"", content_type: str = ""):
+    from io import BytesIO
+
+    from idvs.wsgi import app
+
+    captured = {}
+
+    def start_response(status, headers):
+        captured["status"] = status
+        captured["headers"] = headers
+
+    environ = {
+        "REQUEST_METHOD": method,
+        "PATH_INFO": path,
+        "CONTENT_LENGTH": str(len(body)),
+        "CONTENT_TYPE": content_type,
+        "wsgi.input": BytesIO(body),
+    }
+    response_body = b"".join(app(environ, start_response))
+    return captured["status"], dict(captured["headers"]), response_body
+
+
+def test_wsgi_app_serves_upload_form():
+    status, headers, body = call_wsgi_app()
+
+    assert status.startswith("200")
+    assert headers["Content-Type"] == "text/html; charset=utf-8"
+    assert b"ID Card Verification Upload" in body
+
+
+def test_wsgi_app_accepts_uploads_with_configured_directory(tmp_path: Path, monkeypatch):
+    boundary = "wsgi-boundary"
+    monkeypatch.setenv("IDVS_UPLOAD_DIR", str(tmp_path))
+
+    status, _headers, body = call_wsgi_app(
+        "/upload",
+        "POST",
+        multipart_body(boundary),
+        f"multipart/form-data; boundary={boundary}",
+    )
+
+    assert status.startswith("200")
+    assert b"Upload complete" in body
+    assert len(list(tmp_path.iterdir())) == 1

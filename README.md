@@ -29,6 +29,19 @@ Change it before real deployment.
 python main.py
 ```
 
+
+## Optional Online Testing on Vercel
+
+The offline kiosk remains the production entrypoint. For quick browser-based testing on Vercel, this repository also includes a lightweight WSGI upload app exposed from `api/index.py`. Vercel detects the Python runtime and serves the form at `/`; uploads post to `/upload`.
+
+Serverless filesystems are ephemeral, so uploaded images are stored in `/tmp/idvs-upload` on Vercel unless `IDVS_UPLOAD_DIR` is set. Use this only for test submissions, not durable production storage.
+
+```bash
+python -m wsgiref.simple_server 8000 idvs.wsgi:app
+```
+
+Then open <http://localhost:8000>.
+
 ## Test
 
 ```bash
